@@ -1,0 +1,9 @@
+CREATE OR REPLACE TRIGGER trg_users_id
+BEFORE INSERT ON User_Data
+FOR EACH ROW
+BEGIN
+    IF :NEW.user_id IS NULL THEN
+        SELECT Users_seq.NEXTVAL INTO :NEW.user_id FROM dual;
+    END IF;
+END;
+/
