@@ -1,42 +1,30 @@
+# supplier_groupby.py
 import cx_Oracle
-
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 load_dotenv()
 
-# === DB connection setup ===
-dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+def fetch_supplier_groupby():
+    dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+    username = os.getenv("username")
+    password = os.getenv("password")
 
-try:
-    connection = cx_Oracle.connect(
-        user=username,
-        password=password,
-        dsn=dsn,
-    )
-    print("✅ Connected to Oracle Database.")
-    cursor = connection.cursor()
-
-    query = """
-        SELECT location, COUNT(*) AS total_suppliers
-        FROM Suppliers
-        WHERE location IS NOT NULL
-        GROUP BY location
-        HAVING COUNT(*) >= 1
-    """
-    cursor.execute(query)
-
-    # === Fetch and print results ===
-    print("\n--- Locations with suppliers ---")
-    for location, total in cursor.fetchall():
-        print(f"📍 Location: {location} — 🧾 Suppliers: {total}")
-
-except cx_Oracle.DatabaseError as e:
-    error, = e.args
-    print(f"❌ Database error: {error.message}")
-
-finally:
-    if 'connection' in locals() and connection:
-        connection.close()
-        print("🔒 Connection closed.")
+    results = []
+    try:
+        conn = cx_Oracle.connect(user=username, password=password, dsn=dsn)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT NVL(location, 'Unknown'), COUNT(*) AS total_suppliers
+            FROM Suppliers
+            GROUP BY location
+            HAVING COUNT(*) >= 1
+            ORDER BY total_suppliers DESC
+        """)
+        for location, count in cursor.fetchall():
+            results.append((location, count))
+    except cx_Oracle.DatabaseError as e:
+        results.append((f"Error: {e}",))
+    finally:
+        if conn:
+            conn.close()
+    return results

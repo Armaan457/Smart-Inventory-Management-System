@@ -1,6 +1,7 @@
 import cx_Oracle
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
+
 load_dotenv()
 
 # === DB connection setup ===
@@ -8,38 +9,38 @@ dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
 username = os.getenv("username")
 password = os.getenv("password")
 
-# === Get input from user ===
-supplier_name = input("🔍 Enter Supplier Name: ").strip()
+def fetch_supplier_info(supplier_name):
+    output_lines = []
+    try:
+        connection = cx_Oracle.connect(
+            user=username,
+            password=password,
+            dsn=dsn,
+        )
+        cursor = connection.cursor()
 
-try:
-    connection = cx_Oracle.connect(
-        user=username,
-        password=password,
-        dsn=dsn,
-    )
-    print("✅ Connected to Oracle Database.")
-    cursor = connection.cursor()
+        # Enable DBMS_OUTPUT
+        cursor.callproc("DBMS_OUTPUT.ENABLE")
 
-    # Enable DBMS_OUTPUT
-    cursor.callproc("DBMS_OUTPUT.ENABLE")
+        # Call the stored procedure
+        cursor.callproc("PrintSupplierInfo", [supplier_name])
 
-    cursor.callproc("PrintSupplierInfo", [supplier_name])
+        statusVar = cursor.var(cx_Oracle.NUMBER)
+        lineVar = cursor.var(cx_Oracle.STRING)
 
-    statusVar = cursor.var(cx_Oracle.NUMBER)
-    lineVar = cursor.var(cx_Oracle.STRING)
+        # Read DBMS_OUTPUT lines
+        while True:
+            cursor.callproc("DBMS_OUTPUT.GET_LINE", (lineVar, statusVar))
+            if statusVar.getvalue() != 0:
+                break
+            output_lines.append(lineVar.getvalue())
 
-    print("\n--- Supplier Details ---")
-    while True:
-        cursor.callproc("DBMS_OUTPUT.GET_LINE", (lineVar, statusVar))
-        if statusVar.getvalue() != 0:
-            break
-        print(lineVar.getvalue())
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        output_lines.append(f"❌ Database error: {error.message}")
 
-except cx_Oracle.DatabaseError as e:
-    error, = e.args
-    print(f"❌ Database error: {error.message}")
+    finally:
+        if 'connection' in locals() and connection:
+            connection.close()
 
-finally:
-    if 'connection' in locals() and connection:
-        connection.close()
-        print("🔒 Connection closed.")
+    return output_lines

@@ -1,57 +1,47 @@
 import cx_Oracle
+import os
+from dotenv import load_dotenv
 
-# Oracle DB connection
+load_dotenv()
+
+# === DB connection setup ===
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = "sys"
-password = "Armaan"
+username = os.getenv("username")
+password = os.getenv("password")
 
-# Get input filters from user (optional)
-def get_optional_input(prompt):
-    val = input(prompt).strip()
-    return float(val) if val else None
+def filter_clusters(min_quantity=None, min_price=None, min_sales=None, min_popularity=None):
+    output_lines = []
+    try:
+        connection = cx_Oracle.connect(
+            user=username,
+            password=password,
+            dsn=dsn,
+        )
+        cursor = connection.cursor()
+        cursor.callproc("DBMS_OUTPUT.ENABLE")
 
-min_quantity = get_optional_input("Min Avg Quantity (or press Enter to skip): ")
-min_price = get_optional_input("Min Avg Price (or press Enter to skip): ")
-min_sales = get_optional_input("Min Avg Sales (or press Enter to skip): ")
-min_popularity = get_optional_input("Min Popularity Score (or press Enter to skip): ")
+        cursor.callproc("FilterClustersByStats", [
+            min_quantity,
+            min_price,
+            min_sales,
+            min_popularity
+        ])
 
-try:
-    connection = cx_Oracle.connect( 
-        user=username,
-        password=password,
-        dsn=dsn,
-        mode=cx_Oracle.SYSDBA
-    )
-    print("✅ Connected to Oracle Database.")
+        status_var = cursor.var(cx_Oracle.NUMBER)
+        line_var = cursor.var(cx_Oracle.STRING)
 
-    cursor = connection.cursor()
-    cursor.callproc("DBMS_OUTPUT.ENABLE")
+        while True:
+            cursor.callproc("DBMS_OUTPUT.GET_LINE", (line_var, status_var))
+            if status_var.getvalue() != 0:
+                break
+            output_lines.append(line_var.getvalue())
 
-    # Call the filter procedure
-    cursor.callproc("FilterClustersByStats", [
-        min_quantity,
-        min_price,
-        min_sales,
-        min_popularity
-    ])
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        output_lines.append(f"❌ Database Error: {error.message}")
 
-    # Read DBMS_OUTPUT
-    status_var = cursor.var(cx_Oracle.NUMBER)
-    line_var = cursor.var(cx_Oracle.STRING)
+    finally:
+        if 'connection' in locals() and connection:
+            connection.close()
 
-    print("\n📋 Filtered Cluster Results:\n" + "-" * 40)
-    while True:
-        cursor.callproc("DBMS_OUTPUT.GET_LINE", (line_var, status_var))
-        if status_var.getvalue() != 0:
-            break
-        print(line_var.getvalue())
-
-except cx_Oracle.DatabaseError as e:
-    error, = e.args
-    print(f"❌ Database Error: {error.message}")
-
-finally:
-    if 'connection' in locals() and connection:
-        connection.close()
-        print("🔒 Connection closed.")
-
+    return output_lines

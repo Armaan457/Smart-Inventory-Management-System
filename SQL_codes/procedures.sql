@@ -17,13 +17,25 @@ BEGIN
 
         DBMS_OUTPUT.PUT_LINE('Supplier ID: ' || supplier_rec.supplier_id);
         DBMS_OUTPUT.PUT_LINE('Name: ' || supplier_rec.name);
-        DBMS_OUTPUT.PUT_LINE('Location: ' || supplier_rec.location);
-        DBMS_OUTPUT.PUT_LINE('Contact Info: ' || supplier_rec.contact_info);
-        DBMS_OUTPUT.PUT_LINE('-----------------------------');
+
+        IF supplier_rec.location IS NULL THEN
+            DBMS_OUTPUT.PUT_LINE('Location: No location specified');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Location: ' || supplier_rec.location);
+        END IF;
+
+        IF supplier_rec.contact_info IS NULL THEN
+            DBMS_OUTPUT.PUT_LINE('Contact Info: No phone number available');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Contact Info: ' || supplier_rec.contact_info);
+        END IF;
+
+        DBMS_OUTPUT.PUT_LINE('----------------------------------------------------------------------------');
     END LOOP;
     CLOSE supplier_cursor;
 END;
 /
+
 
 CREATE OR REPLACE PROCEDURE RecommendItemsByCategory (
     p_category IN VARCHAR2
@@ -63,7 +75,7 @@ BEGIN
         END LOOP;
         CLOSE product_cursor;
 
-        DBMS_OUTPUT.PUT_LINE('-----------------------------');
+        DBMS_OUTPUT.PUT_LINE('----------------------------------------------------------------------------');
     END LOOP;
     CLOSE cluster_cursor;
 
@@ -110,8 +122,8 @@ BEGIN
         DBMS_OUTPUT.PUT_LINE(' - Avg Quantity: ' || rec.avg_quantity);
         DBMS_OUTPUT.PUT_LINE(' - Avg Price: ₹' || rec.avg_price);
         DBMS_OUTPUT.PUT_LINE(' - Avg Sales: ' || rec.avg_sales);
-        DBMS_OUTPUT.PUT_LINE(' - Popularity Score: ' || rec.avg_popularity_score);
-        DBMS_OUTPUT.PUT_LINE('----------------------------');
+        DBMS_OUTPUT.PUT_LINE(' - Popularity Score: ' || rec.avg_popularity_score*100 || '%');
+        DBMS_OUTPUT.PUT_LINE('----------------------------------------------------------------------------');
     END LOOP;
 
 EXCEPTION

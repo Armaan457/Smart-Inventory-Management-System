@@ -1,49 +1,43 @@
 import cx_Oracle
-
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 load_dotenv()
 
-# === DB connection setup ===
-dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+def fetch_suppliers_by_location(city=None, country=None):
+    dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+    username = os.getenv("username")
+    password = os.getenv("password")
 
-# === Get user input from terminal ===
-city = input("Enter City (or press Enter to skip): ").strip()
-country = input("Enter Country (or press Enter to skip): ").strip()
+    results = []
+    conn = None
 
-city = None if city == "" else city
-country = None if country == "" else country
+    try:
+        conn = cx_Oracle.connect(user=username, password=password, dsn=dsn)
+        cursor = conn.cursor()
+        cursor.callproc("DBMS_OUTPUT.ENABLE")
 
-try:
-    connection = cx_Oracle.connect(
-        user=username,
-        password=password,
-        dsn=dsn,
-    )
-    print("✅ Connected to Oracle Database.")
-    cursor = connection.cursor()
+        # Call the procedure that prints info via DBMS_OUTPUT
+        cursor.callproc("GetSuppliersByLocation", [city, country])
 
-    cursor.callproc("DBMS_OUTPUT.ENABLE")
+        # Fetch lines printed via DBMS_OUTPUT
+        statusVar = cursor.var(cx_Oracle.NUMBER)
+        lineVar = cursor.var(cx_Oracle.STRING)
 
-    cursor.callproc("GetSuppliersByLocation", [city, country])
+        while True:
+            cursor.callproc("DBMS_OUTPUT.GET_LINE", (lineVar, statusVar))
+            # print(lineVar.getvalue())
+            if statusVar.getvalue() != 0:
+                break
+            results.append(lineVar.getvalue())  
 
-    statusVar = cursor.var(cx_Oracle.NUMBER)
-    lineVar = cursor.var(cx_Oracle.STRING)
+        # Ensure even if no output, return something meaningful
+        if not any(results):
+            results.append("❌ No output from the procedure.")
 
-    print("\n--- Supplier Info ---")
-    while True:
-        cursor.callproc("DBMS_OUTPUT.GET_LINE", (lineVar, statusVar))
-        if statusVar.getvalue() != 0:
-            break
-        print(lineVar.getvalue())
+    except cx_Oracle.DatabaseError as e:
+        results.append(f"❌ Database Error: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
-except cx_Oracle.DatabaseError as e:
-    error, = e.args
-    print(f"❌ Database error: {error.message}")
-
-finally:
-    if 'connection' in locals() and connection:
-        connection.close()
-        print("🔒 Connection closed.")
+    return results
