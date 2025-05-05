@@ -1,27 +1,23 @@
 import cx_Oracle
+import os
+from dotenv import load_dotenv
+import pandas as pd
+load_dotenv()
 
-def execute_view_alerts(connection):
-    cursor = connection.cursor()
-    try:
-        # =========================================
-        # SECTION 1: VIEW specific alert records by product ID and alert date
-        # =========================================
-        print("Executing SECTION 1: VIEW specific alert records")
-        
-        # Example query to fetch specific alerts based on product_id and alert_date
-        cursor.execute("""
-            SELECT * FROM Inventory_Alerts
-            WHERE product_id = 101 AND alert_date = TO_DATE('2025-04-30', 'YYYY-MM-DD')
-        """)
-        inventory_alerts = cursor.fetchall()
-        print("Inventory Alerts:", inventory_alerts)
+dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
+username = os.getenv("username")
+password = os.getenv("password")
 
-        # You can add more queries here if needed, for example:
-        # cursor.execute("SELECT * FROM Inventory_Alerts WHERE alert_date > TO_DATE('2025-01-01', 'YYYY-MM-DD')")
-        # alerts_after_jan_2025 = cursor.fetchall()
-        # print("Alerts after January 2025:", alerts_after_jan_2025)
+conn = cx_Oracle.connect(user=username, password=password, dsn=dsn)
 
-    except cx_Oracle.DatabaseError as e:
-        print("Error executing view alerts commands:", e)
-    finally:
-        cursor.close()
+def fetch_inventory_alerts():
+    cursor = conn.cursor()
+    out_cursor = cursor.var(cx_Oracle.CURSOR)
+    
+    cursor.callfunc("GetInventoryAlerts", out_cursor)
+    results = out_cursor.getvalue()
+    
+    columns = [col[0] for col in results.description]
+    rows = results.fetchall()
+    df = pd.DataFrame(rows, columns=columns)
+    return df

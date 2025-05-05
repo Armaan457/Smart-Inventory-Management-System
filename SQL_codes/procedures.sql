@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE GetSuppliersByLocation (
+CREATE OR REPLACE PROCEDURE GetSuppliersByLocation (  
     p_city IN VARCHAR2 DEFAULT NULL,
     p_country IN VARCHAR2 DEFAULT NULL
 )
@@ -49,7 +49,7 @@ IS
         FROM Clusters
         WHERE REGEXP_LIKE(category_distribution, LOWER(v_category), 'i')
           AND cluster_id != -1
-        FETCH FIRST 3 ROWS ONLY;
+        FETCH FIRST 4 ROWS ONLY;
 
     CURSOR product_cursor (p_cluster_id NUMBER) IS
         SELECT name, price, rating
@@ -74,7 +74,6 @@ BEGIN
 
             DBMS_OUTPUT.PUT_LINE('Cluster containing the item: ' || v_item_cluster_id);
 
-            -- Display products in the item's cluster
             OPEN product_cursor(v_item_cluster_id);
             LOOP
                 FETCH product_cursor INTO prod_rec;
@@ -145,7 +144,7 @@ CREATE OR REPLACE PROCEDURE FilterClustersByStats (
     p_min_price           IN NUMBER DEFAULT NULL,
     p_min_sales           IN NUMBER DEFAULT NULL,
     p_min_popularity      IN NUMBER DEFAULT NULL,
-    p_num_clusters        IN NUMBER DEFAULT NULL -- New parameter for limiting clusters
+    p_num_clusters        IN NUMBER DEFAULT NULL 
 )
 IS
 BEGIN
@@ -159,7 +158,7 @@ BEGIN
           AND (p_min_sales IS NULL OR avg_sales >= p_min_sales)
           AND (p_min_popularity IS NULL OR avg_popularity_score >= p_min_popularity)
         ORDER BY cluster_id
-        FETCH FIRST p_num_clusters ROWS ONLY -- Limit the number of clusters
+        FETCH FIRST p_num_clusters ROWS ONLY
     ) LOOP
         DBMS_OUTPUT.PUT_LINE('Cluster ID: ' || rec.cluster_id);
         DBMS_OUTPUT.PUT_LINE(' - Avg Quantity: ' || rec.avg_quantity);
@@ -220,23 +219,27 @@ CREATE OR REPLACE PROCEDURE ConductTransaction (
 IS
     v_product_id        NUMBER;
     v_current_quantity  NUMBER;
+    v_new_quantity      NUMBER;
+    v_product_name      VARCHAR2(100);
 BEGIN
-    -- Get product ID and current quantity
-    SELECT product_id, quantity
-    INTO v_product_id, v_current_quantity
+    -- Get product ID, name, and current quantity
+    SELECT product_id, quantity, name
+    INTO v_product_id, v_current_quantity, v_product_name
     FROM Products
     WHERE LOWER(name) = LOWER(p_product_name);
 
-    IF v_current_quantity + p_quantity_change < 0 THEN
+    -- Check for insufficient stock
+    v_new_quantity := v_current_quantity + p_quantity_change;
+    IF v_new_quantity < 0 THEN
         RAISE_APPLICATION_ERROR(-20001, 'Not enough stock for transaction.');
     END IF;
 
-    -- Update Products table
+    -- Update product quantity
     UPDATE Products
-    SET quantity = quantity + p_quantity_change
+    SET quantity = v_new_quantity
     WHERE product_id = v_product_id;
 
-    -- Insert into Transactions table
+    -- Insert transaction record
     INSERT INTO Transactions (
         transaction_id,
         transaction_type,
@@ -253,9 +256,89 @@ BEGIN
         p_user_id
     );
 
+
     COMMIT;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         RAISE_APPLICATION_ERROR(-20002, 'Product not found.');
+    WHEN DUP_VAL_ON_INDEX THEN
+        NULL; -- Avoid duplicate alert for same product/date combo
+    WHEN OTHERS THEN
+        ROLLBACK;
+        RAISE;
 END;
 /
+
+
+
+CREATE OR REPLACE PROCEDURE ReassignProductCluster (
+    p_product_id     IN NUMBER,
+    p_new_cluster_id IN NUMBER
+)
+AS
+    v_category         VARCHAR2(100);
+    v_old_cluster_id   NUMBER;
+    v_old_json_clob    CLOB;
+    v_new_json_clob    CLOB;
+    v_old_json         JSON_OBJECT_T;
+    v_new_json         JSON_OBJECT_T;
+    v_count            NUMBER;
+    v_updated_clob     CLOB;
+BEGIN
+    -- Get product category and old cluster
+    SELECT category, cluster_id INTO v_category, v_old_cluster_id
+    FROM Products
+    WHERE product_id = p_product_id;
+
+    -- Reassign the product to the new cluster
+    UPDATE Products
+    SET cluster_id = p_new_cluster_id
+    WHERE product_id = p_product_id;
+
+    -- ==== Update OLD cluster ====
+    SELECT category_distribution INTO v_old_json_clob
+    FROM Clusters
+    WHERE cluster_id = v_old_cluster_id;
+
+    v_old_json := JSON_OBJECT_T.parse(v_old_json_clob);
+
+    IF v_old_json.get(v_category) IS NOT NULL THEN
+        v_count := v_old_json.get_Number(v_category);
+        IF v_count > 1 THEN
+            v_old_json.put(v_category, v_count - 1);
+        ELSE
+            v_old_json.remove(v_category);
+        END IF;
+
+        v_updated_clob := v_old_json.to_clob();
+
+        UPDATE Clusters
+        SET category_distribution = v_updated_clob
+        WHERE cluster_id = v_old_cluster_id;
+    END IF;
+
+    -- ==== Update NEW cluster ====
+    SELECT category_distribution INTO v_new_json_clob
+    FROM Clusters
+    WHERE cluster_id = p_new_cluster_id;
+
+    v_new_json := JSON_OBJECT_T.parse(v_new_json_clob);
+
+    IF v_new_json.get(v_category) IS NOT NULL THEN
+        v_count := v_new_json.get_Number(v_category);
+        v_new_json.put(v_category, v_count + 1);
+    ELSE
+        v_new_json.put(v_category, 1);
+    END IF;
+
+    v_updated_clob := v_new_json.to_clob();
+
+    UPDATE Clusters
+    SET category_distribution = v_updated_clob
+    WHERE cluster_id = p_new_cluster_id;
+
+    COMMIT;
+END;
+/
+
+

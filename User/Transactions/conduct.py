@@ -19,7 +19,7 @@ def call_conduct_transaction(product_name, quantity, user_id):
 
             cursor.callproc("ConductTransaction", [
                 product_name,
-                quantity,  # quantity can be positive (stock-in) or negative (stock-out)
+                quantity,  
                 user_id
             ])
             conn.commit()
