@@ -1,6 +1,6 @@
 CREATE TABLE Suppliers (
     supplier_id NUMBER PRIMARY KEY,
-    name VARCHAR2(100),
+    name VARCHAR2(100) UNIQUE,
     location VARCHAR2(100),
     contact_info VARCHAR2(255)
 );
