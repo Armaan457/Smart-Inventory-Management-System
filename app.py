@@ -432,6 +432,19 @@ if st.session_state['is_admin']:
         else:
             st.info("No non-admin users found.")
     
+    with st.expander("📜 View Transactions"):
+        transactions = view.fetch_transactions(
+            user_id=st.session_state['user_id'],
+            is_admin=st.session_state['is_admin']
+        )
+
+        if isinstance(transactions, dict) and "error" in transactions:
+            st.error(transactions["error"])
+        elif transactions:
+            st.dataframe(transactions)
+        else:
+            st.info("No transactions found.")
+    
     with st.expander("🔔 Alerts"):
         df_alerts = view_alerts.fetch_inventory_alerts()
 
