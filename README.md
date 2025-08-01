@@ -52,7 +52,7 @@ The **Smart Inventory Management System** is a web-based application designed to
 
 ---
 
-## Database Schema and ER Diagram
+## Database Schema
 
 ![Database Schema](Assets/db_schema.png)
 
@@ -66,7 +66,11 @@ The **Smart Inventory Management System** is a web-based application designed to
 
 ## Project Demo 
 
-[![Watch the video](https://img.youtube.com/vi/xMyKkujmtHs/0.jpg)](https://www.youtube.com/watch?v=xMyKkujmtHs)
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=xMyKkujmtHs">
+    <img src="https://img.youtube.com/vi/xMyKkujmtHs/maxresdefault.jpg" style="width: 100%; max-width: 800px;" alt="Smart Inventory Management System Demo">
+  </a>
+</p>
 
 
 ## Installation 
