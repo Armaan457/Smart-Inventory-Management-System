@@ -6,8 +6,8 @@ load_dotenv()
 
 def fetch_supplier_groupby():
     dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-    username = os.getenv("username")
-    password = os.getenv("password")
+    username = os.getenv("db_username")
+    password = os.getenv("db_password")
 
     results = []
     try:

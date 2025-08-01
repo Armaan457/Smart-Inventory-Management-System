@@ -5,8 +5,8 @@ import pandas as pd
 load_dotenv()
 
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 conn = cx_Oracle.connect(user=username, password=password, dsn=dsn)
 

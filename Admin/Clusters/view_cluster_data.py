@@ -7,8 +7,8 @@ load_dotenv()
 
 # Oracle DB setup
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 def format_category_distribution(raw_clob):
     # Read and clean the CLOB

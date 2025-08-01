@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 def fetch_transactions(user_id=None, is_admin=False):
     try:

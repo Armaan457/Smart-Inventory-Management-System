@@ -40,15 +40,34 @@ The **Smart Inventory Management System** is a web-based application designed to
 - **Change Password**:
   - Update account password securely.
 
+### Machine Learning Features
+
+- **Product Clustering**:
+  - Automatic product grouping using HDBSCAN clustering algorithm.
+  - Groups products based on price, sales, popularity, and category.
+
+- **Intelligent Recommendations**:
+  - Cluster-based product suggestions for enhanced user experience.
+  - Category-based recommendations using ML insights.
+
 ---
+
+## Database Schema and ER Diagram
+
+![Database Schema](Assets/db_schema.png)
 
 ## Technologies Used
 
 - **Frontend**: Streamlit
 - **Backend**: Python
 - **Database**: Oracle Database
-
+- **Machine Learning**: Scikit-learn, HDBSCAN and UMAP
 ---
+
+## Project Demo 
+
+[![Watch the video](https://img.youtube.com/vi/xMyKkujmtHs/0.jpg)](https://www.youtube.com/watch?v=xMyKkujmtHs)
+
 
 ## Installation 
 

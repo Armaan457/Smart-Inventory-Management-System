@@ -7,8 +7,8 @@ import streamlit as st
 # Load credentials
 load_dotenv()
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 def create_connection():
     return cx_Oracle.connect(user=username, password=password, dsn=dsn)

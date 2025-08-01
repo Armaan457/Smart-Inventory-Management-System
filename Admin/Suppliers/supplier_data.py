@@ -6,8 +6,8 @@ load_dotenv()
 
 # === DB connection setup ===
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 def fetch_supplier_info(supplier_name):
     output_lines = []

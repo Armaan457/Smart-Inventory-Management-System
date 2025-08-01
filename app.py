@@ -19,8 +19,8 @@ load_dotenv()
 
 # === DB connection setup ===
 dsn = cx_Oracle.makedsn("localhost", 1521, service_name="orcl")
-username = os.getenv("username")
-password = os.getenv("password")
+username = os.getenv("db_username")
+password = os.getenv("db_password")
 
 
 # Streamlit session state for authentication
@@ -256,7 +256,7 @@ if st.session_state['is_admin']:
             min_price = st.text_input("Minimum Avg Price", key="min_price")
             min_sales = st.text_input("Minimum Avg Sales", key="min_sales")
             min_popularity = st.text_input("Minimum Popularity Score", key="min_pop")
-            min_clusters = st.text_input("Number of Clusters", key="num_clusters")
+            min_clusters = st.text_input("Minimum number of items", key="num_clusters")
 
             if st.button("Run Cluster Filter", key="btn_run_cluster_filter"):
                 results = cluster_analysis.filter_clusters(
@@ -431,6 +431,19 @@ if st.session_state['is_admin']:
                 st.rerun()
         else:
             st.info("No non-admin users found.")
+    
+    with st.expander("📜 View Transactions"):
+        transactions = view.fetch_transactions(
+            user_id=st.session_state['user_id'],
+            is_admin=st.session_state['is_admin']
+        )
+
+        if isinstance(transactions, dict) and "error" in transactions:
+            st.error(transactions["error"])
+        elif transactions:
+            st.dataframe(transactions)
+        else:
+            st.info("No transactions found.")
     
     with st.expander("🔔 Alerts"):
         df_alerts = view_alerts.fetch_inventory_alerts()
